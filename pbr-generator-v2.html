@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PBŘ generátor — koncept technické zprávy (v2, podmíněná logika)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 text-slate-800">
+<div class="max-w-7xl mx-auto p-4 md:p-6">
+  <header class="mb-5">
+    <h1 class="text-2xl font-bold">PBŘ generátor — koncept technické zprávy</h1>
+    <p class="text-sm text-slate-600 mt-1 max-w-5xl">
+      Z <strong>druhu stavby</strong>, charakteristik a <strong>stupně dokumentace</strong> nástroj rozhodne,
+      <strong>které normy a kapitoly se uplatní</strong> (§ 41 vyhl. 246/2001 Sb. ve znění 467/2025 Sb.),
+      sestaví osnovu technické zprávy PBŘ a veřejnoprávní rámec. Každá <strong>normová hodnota</strong>
+      (p<sub>v</sub>, R/EI, odstupy, únikové cesty, SPB, PHP, koncentrace, doby funkčnosti) zůstává jako
+      placeholder <code class="bg-slate-200 px-1 rounded">[DOPLŇ DLE ČSN …]</code> — doplní ji autorizovaná
+      osoba z vlastního přístupu k ČSN. Nástroj <strong>neukládá data</strong> a <strong>nereprodukuje text
+      ani hodnoty ČSN</strong>. Koncept / osnova, nikoli projektová dokumentace.
+    </p>
+  </header>
+
+  <div class="grid lg:grid-cols-2 gap-6">
+    <!-- FORM -->
+    <form id="f" class="bg-white rounded-xl shadow p-5 space-y-4">
+      <div>
+        <label class="block text-sm font-medium">Název stavby / akce</label>
+        <input name="nazev" class="mt-1 w-full border rounded-lg px-3 py-2" placeholder="Novostavba …">
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium">Druh stavby <span class="text-red-600">*</span>
+            <span class="text-xs text-slate-500">(řídí výběr norem)</span></label>
+          <select name="druh" id="druh" class="mt-1 w-full border rounded-lg px-3 py-2">
+            <option value="rodinny">rodinný dům (OB 1)</option>
+            <option value="bytovy">bytový dům (OB 2 / OB 3)</option>
+            <option value="ubytovaci">ubytovací zařízení (OB 4)</option>
+            <option value="administrativni">administrativní budova</option>
+            <option value="skolni">školské zařízení / mateřská škola</option>
+            <option value="zdravotnicke">zdravotnické / sociální zařízení</option>
+            <option value="shromazdovaci">shromažďovací prostor</option>
+            <option value="obchodni">obchodní / prodejní objekt</option>
+            <option value="vyrobni">výrobní / průmyslový objekt</option>
+            <option value="sklad">skladový objekt</option>
+            <option value="garaz">garáž (hromadná / řadová)</option>
+            <option value="zemedelsky">zemědělský objekt</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Stupeň dokumentace <span class="text-red-600">*</span>
+            <span class="text-xs text-slate-500">(řídí rozsah)</span></label>
+          <select name="stupen" id="stupen" class="mt-1 w-full border rounded-lg px-3 py-2">
+            <option value="studie">studie / záměr</option>
+            <option value="dur">DÚR / povolení záměru</option>
+            <option value="dsp" selected>DSP / dokumentace pro povolení stavby (D.3)</option>
+            <option value="dps">DPS / provádění stavby (D.4)</option>
+            <option value="zmena-uziti">změna v užívání</option>
+            <option value="zmena-dokoncene">změna dokončené stavby</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="block text-sm font-medium">Nadz. podlaží</label>
+          <input name="podlaziNad" type="number" min="0" class="mt-1 w-full border rounded-lg px-3 py-2" placeholder="2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Podz. podlaží</label>
+          <input name="podlaziPod" type="number" min="0" class="mt-1 w-full border rounded-lg px-3 py-2" placeholder="0">
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Požární výška h (m)</label>
+          <input name="vyska" class="mt-1 w-full border rounded-lg px-3 py-2" placeholder="6,0">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="block text-sm font-medium">Plocha (m²)</label>
+          <input name="plocha" class="mt-1 w-full border rounded-lg px-3 py-2" placeholder="180">
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Počet osob</label>
+          <input name="osoby" class="mt-1 w-full border rounded-lg px-3 py-2" placeholder="5">
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Konstr. systém</label>
+          <select name="konstrukce" class="mt-1 w-full border rounded-lg px-3 py-2">
+            <option value="DP1 (nehořlavý)">DP1 (nehořlavý)</option>
+            <option value="DP2 (smíšený)">DP2 (smíšený)</option>
+            <option value="DP3 (hořlavý)">DP3 (hořlavý)</option>
+          </select>
+        </div>
+      </div>
+
+      <fieldset class="border rounded-lg p-3">
+        <legend class="text-sm font-medium px-1">Charakteristiky (přepínají kapitoly a tvrzení)</legend>
+        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-1">
+          <label class="flex items-center gap-2"><input type="checkbox" name="cf_latky" class="cf"> hořlavé / nebezpečné látky</label>
+          <label class="flex items-center gap-2"><input type="checkbox" name="cf_shz" class="cf"> navrženo SHZ</label>
+          <label class="flex items-center gap-2"><input type="checkbox" name="cf_vyska225" class="cf"> požární výška &gt; 22,5 m</label>
+          <label class="flex items-center gap-2"><input type="checkbox" name="cf_luzko" class="cf"> lůžkový provoz</label>
+          <label class="flex items-center gap-2"><input type="checkbox" name="cf_zvirata" class="cf"> ustájení zvířat</label>
+          <label class="flex items-center gap-2"><input type="checkbox" name="cf_lpg" class="cf"> LPG / CNG v garáži</label>
+          <label class="flex items-center gap-2"><input type="checkbox" name="cf_soubehpbz" class="cf"> souběh ≥2 vyhrazených PBZ</label>
+          <label class="flex items-center gap-2"><input type="checkbox" name="cf_neschopne" class="cf"> osoby neschopné evakuace</label>
+          <label class="flex items-center gap-2"><input type="checkbox" name="cf_garaz" class="cf"> vestavěná garáž</label>
+          <label class="flex items-center gap-2"><input type="checkbox" name="cf_odlisny" class="cf"> odlišný postup (§41 odst.2 b)</label>
+        </div>
+      </fieldset>
+
+      <div>
+        <label class="block text-sm font-medium">Stručný popis</label>
+        <textarea name="popis" rows="2" class="mt-1 w-full border rounded-lg px-3 py-2" placeholder="Krátký popis objektu, provozu, specifik…"></textarea>
+      </div>
+
+      <div id="applic" class="hidden border border-amber-300 bg-amber-50 rounded-lg p-3 text-xs"></div>
+
+      <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg px-4 py-2.5">
+        Vygenerovat koncept
+      </button>
+    </form>
+
+    <!-- OUTPUT -->
+    <div class="bg-white rounded-xl shadow p-5">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="font-semibold">Vygenerovaný koncept</h2>
+        <div class="space-x-2">
+          <button id="copy" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" disabled>Kopírovat</button>
+          <button id="dl" class="text-sm border rounded-lg px-3 py-1 hover:bg-slate-50" disabled>Stáhnout .doc</button>
+        </div>
+      </div>
+      <pre id="out" class="text-[11px] leading-relaxed whitespace-pre-wrap bg-slate-50 rounded-lg p-3 h-[46rem] overflow-auto">Vyberte druh stavby a stupeň dokumentace, vyplňte parametry a klikněte na „Vygenerovat koncept“.</pre>
+    </div>
+  </div>
+  <p class="text-xs text-slate-400 mt-4">
+    Prototyp · z druhu stavby + charakteristik + stupně dokumentace vybírá uplatnitelné normy a kapitoly ·
+    generuje pouze osnovu a veřejnoprávní rámec · normové hodnoty doplní autorizovaná osoba · HITL ·
+    cituje ČSN pouze číslem · nereprodukuje text ČSN.
+  </p>
+</div>
+
+<script>
+"use strict";
+
+/* ===========================================================================
+   PBŘ GENERÁTOR v2 — deterministic, building-type-conditional. NO LLM.
+   ---------------------------------------------------------------------------
+   LEGAL LINE (the invariant the whole engine obeys):
+     MAY emit  : document structure (§41 vyhl. 246/2001 Sb.), public-law prose,
+                 which-ČSN-applies decisions, ČSN citations BY NUMBER + čl./tab.,
+                 calculation SKELETONS (public formula + input fields).
+     MUST NOT  : ČSN text/tables, any normová hodnota (pv, a/b/c, R/EI, odstupy,
+                 ÚC, SPB, PHP, koncentrace, doby funkčnosti). Those stay [DOPLŇ].
+   Statutory anchor that this is allowed: ČSN content protected by § 5 odst. 8
+   zák. 22/1997 Sb.; a which-norm-applies decision tree copies none of the
+   protected expression. Every value is a placeholder. HITL: output = KONCEPT.
+   =========================================================================== */
+
+var P = "[DOPLŇ DLE ČSN"; // placeholder prefix; always closed with "]"
+var DRUHY = {
+  rodinny:"rodinný dům", bytovy:"bytový dům", ubytovaci:"ubytovací zařízení",
+  administrativni:"administrativní budova", skolni:"školské zařízení / mateřská škola",
+  zdravotnicke:"zdravotnické / sociální zařízení", shromazdovaci:"shromažďovací prostor",
+  obchodni:"obchodní / prodejní objekt", vyrobni:"výrobní / průmyslový objekt",
+  sklad:"skladový objekt", garaz:"garáž (hromadná / řadová)", zemedelsky:"zemědělský objekt"
+};
+var STUPNE = {
+  studie:"studie / záměr", dur:"DÚR / dokumentace pro povolení záměru",
+  dsp:"DSP / dokumentace pro povolení stavby", dps:"DPS / dokumentace pro provádění stavby",
+  "zmena-uziti":"změna v užívání stavby", "zmena-dokoncene":"změna dokončené stavby"
+};
+
+/* ---------------------------------------------------------------------------
+   §2  BUILDING-TYPE RULES TABLE — the conditional engine.
+   norms[]    = ČSN by NUMBER only (additive: base + type), never edition.
+   base       = base norm number (nevýrobní 73 0802 | výrobní/sklad/zeměd. 73 0804)
+   obFrame    = factual scope statement (OB skupina / zařazení) — allowed.
+   force[]/suppress[] = section keys forced present / suppressed.
+   statements[]       = required boilerplate statements (scope only).
+   calcs[]    = calculation skeletons triggered (keys into CALC).
+   flags      = behavioural switches (ekonRiziko, chuc, epsPovinne, …).
+   --------------------------------------------------------------------------- */
+var RULES = {
+  rodinny: {
+    norms:["ČSN 73 0833","ČSN 73 0802","ČSN 73 0810","ČSN 73 0873"], base:"ČSN 73 0802",
+    obFrame:"objekt pro bydlení skupiny OB 1 (ČSN 73 0833)",
+    force:["pu1"], suppress:["znaceni"],
+    statements:[
+      "Objekt se posuzuje jako OB 1 dle ČSN 73 0833.",
+      "Požární zatížení (p_v) se pro OB 1 stanovuje normově (tabulkově) dle ČSN 73 0833, nikoli plným výpočtem dle ČSN 73 0802.",
+      "Celý rodinný dům tvoří zpravidla jeden požární úsek (posoudí zpracovatel)."],
+    calcs:["unikZjednoduseny","odstup"],
+    flags:{ ekonRiziko:false, chuc:false, epsPovinne:false, redukceVypoctuPv:true }
+  },
+  bytovy: {
+    norms:["ČSN 73 0833","ČSN 73 0802","ČSN 73 0810","ČSN 73 0818"], base:"ČSN 73 0802",
+    obFrame:"objekt pro bydlení skupiny OB 2, příp. OB 3 (ČSN 73 0833) — zařadí zpracovatel dle požární výšky",
+    force:["chuc"], suppress:[],
+    statements:[
+      "Objekt se posuzuje jako OB 2 / OB 3 dle ČSN 73 0833.",
+      "Každý byt tvoří samostatný požární úsek.",
+      "Typ chráněné únikové cesty (CHÚC A/B/C) se stanoví dle ČSN 73 0833 [DOPLŇ typ CHÚC dle ČSN 73 0833, čl. …]."],
+    calcs:["pv","spb","unik","chuc","odstup"],
+    flags:{ ekonRiziko:false, chuc:true, epsPovinne:false }
+  },
+  ubytovaci: {
+    norms:["ČSN 73 0833","ČSN 73 0802","ČSN 73 0810","ČSN 73 0818"], base:"ČSN 73 0802",
+    obFrame:"ubytovací zařízení skupiny OB 4 (ČSN 73 0833)",
+    force:["chuc"], suppress:[],
+    statements:[
+      "Objekt se posuzuje jako OB 4 dle ČSN 73 0833.",
+      "Potřeba EPS se posoudí dle požární výšky a ubytovací kapacity.",
+      "Zohlednit nocleh a sníženou schopnost evakuace osob."],
+    calcs:["pv","spb","unik","chuc","odstup"],
+    flags:{ ekonRiziko:false, chuc:true, epsPovinne:false }
+  },
+  administrativni: {
+    norms:["ČSN 73 0802","ČSN 73 0810","ČSN 73 0818"], base:"ČSN 73 0802",
+    obFrame:"nevýrobní objekt (ČSN 73 0802)",
+    force:[], suppress:[],
+    statements:["Objekt se posuzuje jako nevýrobní dle ČSN 73 0802.",
+      "Obsazení osobami se stanoví dle ČSN 73 0818."],
+    calcs:["pv","spb","mezniRozmery","unik","odstup","odolnost"],
+    flags:{ ekonRiziko:false, chuc:false, epsPovinne:false }
+  },
+  skolni: {
+    norms:["ČSN 73 0802","ČSN 73 0831","ČSN 73 0810","ČSN 73 0818"], base:"ČSN 73 0802",
+    obFrame:"nevýrobní objekt (ČSN 73 0802); prostory s větším počtem osob dle ČSN 73 0831",
+    force:[], suppress:[],
+    statements:["Objekt se posuzuje jako nevýrobní dle ČSN 73 0802.",
+      "Únikové cesty shromažďovacích prostorů se posuzují dle ČSN 73 0831.",
+      "Pro děti do 3 let se uplatní ČSN 73 0835 (přesměrování příslušných prostorů)."],
+    calcs:["pv","spb","unik","odstup"],
+    flags:{ ekonRiziko:false, chuc:false, epsPovinne:false }
+  },
+  zdravotnicke: {
+    norms:["ČSN 73 0835","ČSN 73 0802","ČSN 73 0810","ČSN 73 0818"], base:"ČSN 73 0802",
+    obFrame:"zdravotnické zařízení / objekt sociální péče (ČSN 73 0835)",
+    force:["chuc"], suppress:[],
+    statements:[
+      "Objekt se posuzuje jako zdravotnické zařízení dle ČSN 73 0835 (vyňato z ČSN 73 0833).",
+      "EPS / signalizace požáru je u zdravotnických provozů povinná (posoudí zpracovatel rozsah).",
+      "Lůžkovou část a evakuační výtahy posoudit dle ČSN 73 0835."],
+    calcs:["pv","spb","unik","chuc","odstup","eps"],
+    flags:{ ekonRiziko:false, chuc:true, epsPovinne:true }
+  },
+  shromazdovaci: {
+    norms:["ČSN 73 0831","ČSN 73 0802","ČSN 73 0810","ČSN 73 0818"], base:"ČSN 73 0802",
+    obFrame:"shromažďovací prostor (ČSN 73 0831)",
+    force:[], suppress:[],
+    statements:[
+      "Prostor se posuzuje jako shromažďovací dle ČSN 73 0831.",
+      "Počet osob se stanoví dle ČSN 73 0818.",
+      "Posoudit ZOKT (zařízení pro odvod kouře a tepla) dle kapacity."],
+    calcs:["pv","spb","unik","odstup","pocetOsob"],
+    flags:{ ekonRiziko:false, chuc:false, epsPovinne:false }
+  },
+  obchodni: {
+    norms:["ČSN 73 0802","ČSN 73 0831","ČSN 73 0810","ČSN 73 0818"], base:"ČSN 73 0802",
+    obFrame:"prodejní objekt (ČSN 73 0802; ČSN 73 0831 pro shromažďovací části)",
+    force:[], suppress:[],
+    statements:["Objekt se posuzuje dle ČSN 73 0802.",
+      "Velkoplošné prodejní celky se posuzují i dle ČSN 73 0831."],
+    calcs:["pv","spb","unik","odstup"],
+    flags:{ ekonRiziko:false, chuc:false, epsPovinne:false }
+  },
+  vyrobni: {
+    norms:["ČSN 73 0804","ČSN 73 0810","ČSN 73 0818"], base:"ČSN 73 0804",
+    obFrame:"výrobní objekt (ČSN 73 0804)",
+    force:["ekonRiziko"], suppress:[],
+    statements:[
+      "Objekt se posuzuje jako výrobní dle ČSN 73 0804 (nikoli ČSN 73 0802).",
+      "Stanovuje se rovněž ekonomické riziko dle ČSN 73 0804."],
+    calcs:["pvVyrobni","spb","ekonRiziko","unik","odstup"],
+    flags:{ ekonRiziko:true, chuc:false, epsPovinne:false }
+  },
+  sklad: {
+    norms:["ČSN 73 0845","ČSN 73 0804","ČSN 73 0810"], base:"ČSN 73 0804",
+    obFrame:"skladový objekt (ČSN 73 0845 na bázi ČSN 73 0804)",
+    force:["ekonRiziko"], suppress:[],
+    statements:[
+      "Objekt se posuzuje jako skladový dle ČSN 73 0845 na bázi ČSN 73 0804.",
+      "Stanovuje se ekonomické riziko; zohlednit skladované látky a výšku uložení."],
+    calcs:["pvSklad","spb","ekonRiziko","odstup"],
+    flags:{ ekonRiziko:true, chuc:false, epsPovinne:false }
+  },
+  garaz: {
+    norms:["ČSN 73 0804","ČSN 73 6058","ČSN 73 6057","ČSN 73 0810"], base:"ČSN 73 0804",
+    obFrame:"garáž — dle ČSN 73 0804 přílohy I; hromadné ČSN 73 6058, řadové ČSN 73 6057",
+    force:[], suppress:[],
+    statements:[
+      "Garáž se posuzuje dle ČSN 73 0804, přílohy I.",
+      "[Ověřit dle aktuálního znění — připravuje se samostatná ČSN pro garáže].",
+      "Posoudit větrání a odvod kouře garáže."],
+    calcs:["pvGaraz","spb","odstup","zokt"],
+    flags:{ ekonRiziko:false, chuc:false, epsPovinne:false }
+  },
+  zemedelsky: {
+    norms:["ČSN 73 0842","ČSN 73 0804","ČSN 73 0810"], base:"ČSN 73 0804",
+    obFrame:"objekt zemědělské výroby (ČSN 73 0842 na bázi ČSN 73 0804)",
+    force:["ekonRiziko"], suppress:[],
+    statements:[
+      "Objekt se posuzuje jako zemědělský dle ČSN 73 0842 na bázi ČSN 73 0804.",
+      "Při ustájení zvířat posoudit evakuaci zvířat."],
+    calcs:["pv","spb","ekonRiziko","unik","odstup"],
+    flags:{ ekonRiziko:true, chuc:false, epsPovinne:false }
+  }
+};
+
+/* Framework norms appended to EVERY type. 73 0818 only when ÚC navrženy;
+   73 0834 only for změny. 73 0810 (společná) always. */
+function frameworkNorms(r, flags) {
+  var fw = ["ČSN 73 0810"];
+  var hasUnik = r.calcs.some(function(c){ return c.indexOf("unik")===0 || c==="pocetOsob"; });
+  if (hasUnik && r.norms.indexOf("ČSN 73 0818") < 0) fw.push("ČSN 73 0818");
+  if (flags.jeZmena) fw.push("ČSN 73 0834");
+  return fw;
+}
+
+/* ---------------------------------------------------------------------------
+   §3  STAGED-BUILD — depth + Track A/B from stupeň dokumentace.
+   Track A = §41 odst.4 (návrh): studie/DÚR/DSP. Track B = §41 odst.5
+   (popis a zhodnocení): DPS + změny. odst.8 scope-limiting for změny.
+   --------------------------------------------------------------------------- */
+var STAGE = {
+  studie:           { track:"A", odst:"4", dLabel:"—",   depth:"koncept", statutory:false, suppress:["tz","znaceni"] },
+  dur:              { track:"A", odst:"4", dLabel:"—",   depth:"placement",statutory:true, force:["odstup","voda","zasah"] },
+  dsp:              { track:"A", odst:"4", dLabel:"D.3", depth:"full",    statutory:true,  shortTz:true },
+  dps:              { track:"B", odst:"5", dLabel:"D.4", depth:"full",    statutory:true },
+  "zmena-uziti":    { track:"B", odst:"5", dLabel:"(dle typu PD)", depth:"full", statutory:true, jeZmena:true, omezeni:true },
+  "zmena-dokoncene":{ track:"B", odst:"5", dLabel:"(dle typu PD)", depth:"full", statutory:true, jeZmena:true, omezeni:true }
+};
+
+/* ---------------------------------------------------------------------------
+   CALCULATION SKELETONS — public formula + input fields. Coefficients blank.
+   Each returns a frame string; every ČSN value is a [DOPLŇ …] placeholder.
+   --------------------------------------------------------------------------- */
+var CALC = {
+  pv: function(r){ return frame("Výpočtové požární zatížení p_v",
+    ["p_v = (p_n + p_s) · a · b · c   [veřejný vzorec]",
+     "p_n (nahodilé)  = "+P+" "+r.base+", příloha …]  [kg·m⁻²]",
+     "p_s (stálé)     = "+P+" "+r.base+", příloha …]  [kg·m⁻²]",
+     "a, b, c (souč.) = "+P+" "+r.base+", příloha …]",
+     "=> p_v          = ____ kg·m⁻²  (dopočítá zpracovatel)"]); },
+  pvVyrobni: function(r){ return frame("Výpočtové požární zatížení p_v (výrobní)",
+    ["p_v dle metodiky ČSN 73 0804 (vč. ekonomického rizika a hustoty tepelného toku)",
+     "vstupní hodnoty p_n, p_s, a, b, c = "+P+" 73 0804, příloha …]",
+     "=> p_v = ____ kg·m⁻²"]); },
+  pvSklad: function(){ return frame("Výpočtové požární zatížení p_v (sklad)",
+    ["p_v dle ČSN 73 0845 / 73 0804 — zohlednit způsob a výšku skladování",
+     "vstupní hodnoty = "+P+" 73 0845 / 73 0804, příloha …]",
+     "=> p_v = ____ kg·m⁻²"]); },
+  pvGaraz: function(){ return frame("Požární zatížení garáže",
+    ["dle ČSN 73 0804, příl. I — vstupní hodnoty = "+P+" 73 0804, příl. I, čl. …]",
+     "=> p_v = ____ kg·m⁻²"]); },
+  spb: function(r){ return frame("Stupeň požární bezpečnosti (SPB)",
+    ["SPB = f(p_v, konstrukční systém DP1/DP2/DP3, požární výška)",
+     "hodnota SPB = "+P+" "+r.base+", tab. …]"]); },
+  mezniRozmery: function(r){ return frame("Mezní rozměry požárního úseku",
+    ["mezní rozměry dle SPB a užití = "+P+" "+r.base+", tab. …]"]); },
+  ekonRiziko: function(){ return frame("Ekonomické riziko (výrobní / sklad)",
+    ["stanovení ekonomického rizika dle ČSN 73 0804 = "+P+" 73 0804, příloha …]"]); },
+  unik: function(){ return frame("Únikové cesty — počet, délka, šířka, doba",
+    ["počet osob E      = "+P+" 73 0818, čl. …]",
+     "potřebný počet pruhů  u = E · s / K   [veřejný vzorec]",
+     "doba evakuace t_u = 0,75·l_u/v_u + E·s/(K_u·u)   [veřejný vzorec]",
+     "součinitele s, K, K_u, v_u, mezní délky = "+P+" 73 0802 / 73 0831, čl. …]",
+     "=> počet / šířka / délka ÚC = ____ (vyhodnotí zpracovatel)"]); },
+  unikZjednoduseny: function(){ return frame("Únikové cesty (OB 1 — zjednodušeně)",
+    ["pro OB 1 se neprovádí plný výpočet šířky/počtu ÚC",
+     "posouzení mezní délky a provedení ÚC = "+P+" 73 0833, čl. …]"]); },
+  chuc: function(){ return frame("Chráněná úniková cesta (CHÚC)",
+    ["typ CHÚC (A/B/C) = "+P+" 73 0802 / 73 0833, čl. …]",
+     "větrání / přetlak / doba = "+P+" 73 0802, čl. …]"]); },
+  odstup: function(){ return frame("Odstupové vzdálenosti a PNP",
+    ["povinnost vymezit PNP: § 11 vyhl. 23/2008 Sb. [veřejné právo]",
+     "požárně otevřená plocha S_p = ____ × ____ m ; podíl p_o = ____ %",
+     "odstup d = "+P+" 73 0802, příloha F]  [m]",
+     "závěr: PNP vůči hranici pozemku / zástavbě — posoudí zpracovatel"]); },
+  pocetOsob: function(){ return frame("Obsazení osobami",
+    ["počet osob dle součinitelů ČSN 73 0818",
+     "součinitele = "+P+" 73 0818, tab. …]  ; => E = ____ osob"]); },
+  odolnost: function(r){ return frame("Požární odolnost konstrukcí (R/EI)",
+    ["pozn.: Eurokódy (ČSN EN 199x-1-2) jsou veřejnou výpočtovou metodou",
+     "požadované R / REI / EI dle SPB = "+P+" 73 0810 / "+r.base+", tab. …]"]); },
+  eps: function(){ return frame("Elektrická požární signalizace (EPS)",
+    ["rozsah a chráněné prostory dle ČSN v příl. č. 1 části 1 bodu 14 vyhl. 23/2008 Sb.",
+     "ústředna, napájení, návaznosti = "+P+" … čl. …]"]); },
+  zokt: function(){ return frame("Zařízení pro odvod kouře a tepla (ZOKT)",
+    ["kouřové sekce, doba funkčnosti = "+P+" … čl. …]",
+     "řídicí prvky, napájení = "+P+" … čl. …]"]); }
+};
+function frame(title, lines){
+  return "  ── Skelet výpočtu: "+title+" (vyplní zpracovatel) ──\n   "
+    + lines.join("\n   ") + "\n  ─────────────────────────────────────────────";
+}
+
+/* ---------------------------------------------------------------------------
+   PŘÍLOHA č. 7 (467/2025) — vyhrazená PBZ sub-skeletons (scope only).
+   --------------------------------------------------------------------------- */
+var PBZ7 = {
+  eps:    "EPS + zařízení dálkového přenosu (ZDP): dle ČSN v příl. č. 1 části 1 bodu 14 vyhl. 23/2008 Sb.; chráněné prostory, ústředna, napájení, návaznosti = "+P+" … čl. …].",
+  detekce:"Zařízení pro detekci hořlavých plynů a par: chráněné prostory, signalizace, ústředna, koncentrace ["+("DOPLŇ")+"], napájení = "+P+" … čl. …].",
+  shz:    "SHZ / lokální hasicí zařízení: chráněné prostory, hasivo, doba činnosti [DOPLŇ], řídicí prvky, napájení = "+P+" … čl. …].",
+  vybuch: "Protivýbuchová zařízení: aktivní a pasivní prvky = "+P+" … čl. …].",
+  zokt:   "ZOKT: kouřové sekce, doba funkčnosti [DOPLŇ], řídicí prvky, napájení = "+P+" … čl. …].",
+  klapky: "Požární klapky: požární odolnost [DOPLŇ], ovládání a návaznosti = "+P+" … čl. …].",
+  vytahy: "Požární / evakuační výtahy: počet, doba funkčnosti [DOPLŇ], napájení = "+P+" … čl. …]."
+};
+
+function val(s, fb){ s = (s==null?"":String(s)).trim(); return s.length ? s : fb; }
+
+/* ---------------------------------------------------------------------------
+   RESOLVER — combines RULES[druh] × flags × STAGE[stupeň] into a decision.
+   --------------------------------------------------------------------------- */
+function resolve(d) {
+  var r = RULES[d.druh] || RULES.administrativni;
+  var st = STAGE[d.stupen] || STAGE.dsp;
+  var flags = {};
+  ["latky","shz","vyska225","luzko","zvirata","lpg","soubehpbz","neschopne","garaz","odlisny"]
+    .forEach(function(k){ flags[k] = d["cf_"+k] === "on" || d["cf_"+k] === true; });
+  flags.jeZmena = !!st.jeZmena;
+
+  // additive norms + framework, deduped
+  var norms = r.norms.slice().concat(frameworkNorms(r, flags));
+  norms = norms.filter(function(x,i){ return norms.indexOf(x)===i; });
+
+  // section presence (keys); base set, then force/suppress from rules + stage + flags
+  var present = {
+    podklady:1, popis:1, zatrideni:1, pu:1, riziko:1, odolnost:1, hmoty:1,
+    uc:1, odstup:1, voda:1, zasah:1, php:1, tz:1, pbz:1, znaceni:1, zvlast:0, zaver:1
+  };
+  // Track A short suppresses tz/znaceni unless stage overrides; Track B keeps all
+  if (st.track === "A") { present.tz = (d.stupen==="dsp") ? 1 : 0; present.znaceni = 0; }
+  (st.suppress||[]).forEach(function(k){ present[k]=0; });
+  (r.suppress||[]).forEach(function(k){ present[k]=0; });
+  (st.force||[]).forEach(function(k){ present[k]=1; });
+  if (flags.odlisny) present.zvlast = 1;
+
+  // calc skeletons + flag-driven additions
+  var calcs = r.calcs.slice();
+  if (flags.shz && calcs.indexOf("spb")>=0 && r.calcs.indexOf("eps")<0) {} // SHZ handled in PBZ block
+  if (flags.vyska225 && calcs.indexOf("chuc")<0) calcs.push("chuc");
+  if (r.flags.epsPovinne && calcs.indexOf("eps")<0) calcs.push("eps");
+
+  // vyhrazená PBZ blocks (příloha 7) triggered by type flags + characteristic flags
+  var pbz = [];
+  if (r.flags.epsPovinne || flags.vyska225 || d.druh==="ubytovaci" || d.druh==="shromazdovaci") pbz.push("eps");
+  if (flags.latky) pbz.push("detekce");
+  if (flags.shz) pbz.push("shz");
+  if (flags.latky) pbz.push("vybuch");
+  if (d.druh==="shromazdovaci" || d.druh==="garaz") pbz.push("zokt");
+  if (flags.vyska225) pbz.push("vytahy");
+  pbz = pbz.filter(function(x,i){ return pbz.indexOf(x)===i; });
+
+  // statements: rules + flag/stage-driven
+  var statements = r.statements.slice();
+  if (flags.vyska225) statements.push("Požární výška > 22,5 m: posoudit povinnou CHÚC a EPS.");
+  if (flags.luzko) statements.push("Lůžkový provoz: zvýšené požadavky na evakuaci a evakuační výtahy.");
+  if (flags.zvirata) statements.push("Ustájení zvířat: posoudit evakuaci a požadavky na stáje dle ČSN 73 0842.");
+  if (flags.lpg) statements.push("LPG/CNG v garáži: posoudit větrání, detekci plynů a zóny s nebezpečím výbuchu.");
+  if (flags.latky) statements.push("Hořlavé / nebezpečné látky: uvést limitní a navrhované množství (§ 41 odst. 2 písm. a) — odlišný postup).");
+  if (flags.soubehpbz) statements.push("Souběh ≥ 2 vyhrazených PBZ: zpracovat požární scénář a vzájemné vazby (§ 41 odst. 4/5 písm. i).");
+  if (flags.garaz || d.druh==="garaz") statements.push("Garáž tvoří samostatný požární úsek.");
+
+  return { r:r, st:st, flags:flags, norms:norms, present:present, calcs:calcs, pbz:pbz, statements:statements };
+}
+
+/* ---------------------------------------------------------------------------
+   SECTION BUILDER — emits the textová část in the Layer-B running order,
+   each heading tagged with its § 41 anchor. Calc skeletons inserted where due.
+   --------------------------------------------------------------------------- */
+function buildSections(d, R) {
+  var r=R.r, st=R.st, fl=R.flags;
+  var nad=val(d.podlaziNad,"[počet]"), pod=val(d.podlaziPod,"0"), vyska=val(d.vyska,"[DOPLŇ]");
+  var plocha=val(d.plocha,"[DOPLŇ]"), osoby=val(d.osoby,"[DOPLŇ]");
+  var konstr=val(d.konstrukce,"[DP1/DP2/DP3]"), popis=val(d.popis,"Bez bližšího popisu.");
+  var s=[]; var n=0;
+  function H(t,anchor){ n++; return "\n"+n+". "+t+"  ["+anchor+"]\n"; }
+  function calcsFor(keys){
+    return keys.filter(function(k){ return R.calcs.indexOf(k)>=0 && CALC[k]; })
+      .map(function(k){ return CALC[k](r); }).join("\n");
+  }
+
+  // 1 Seznam podkladů
+  s.push(H("SEZNAM POUŽITÝCH PODKLADŮ","§ 41 odst. 3 písm. a)") +
+    "Právní rámec (veřejné právo):\n"+
+    "   - zákon č. 133/1985 Sb., o požární ochraně, ve znění pozdějších předpisů\n"+
+    "   - vyhláška č. 246/2001 Sb., o požární prevenci (§ 41 — obsah PBŘ;\n"+
+    "     ve znění vyhl. č. 467/2025 Sb., účinné od 1. 1. 2026)\n"+
+    "   - vyhláška č. 23/2008 Sb., o technických podmínkách požární ochrany staveb\n"+
+    "   - vyhláška č. 460/2021 Sb., o kategorizaci staveb z hlediska požární bezpečnosti\n"+
+    "   - zákon č. 283/2021 Sb., stavební zákon, ve znění pozdějších předpisů\n"+
+    "   - vyhl. č. 499/2006 Sb. / č. 131/2024 Sb. (dokumentace staveb)\n\n"+
+    "Technické normy uplatnitelné pro tento druh stavby ("+DRUHY[d.druh]+")\n"+
+    "(citováno pouze číslem; hodnoty doplní zpracovatel z vlastního přístupu k ČSN):\n"+
+    R.norms.map(function(x){return "   - "+x;}).join("\n")+"\n"+
+    "   - další ČSN dle konkrétního provozu doplní zpracovatel\n"+
+    "Projektová dokumentace a předchozí PBŘ: doplní zpracovatel.");
+
+  // 2 Stručný popis
+  s.push(H("STRUČNÝ POPIS STAVBY","§ 41 odst. 3 písm. c)") +
+    "Druh stavby: "+DRUHY[d.druh]+".\n"+
+    "Požárně-technické zařazení: "+r.obFrame+".\n"+
+    "Nadzemních podlaží: "+nad+"; podzemních podlaží: "+pod+".\n"+
+    "Požární výška objektu h: "+vyska+" m.\n"+
+    "Zastavěná / posuzovaná plocha: "+plocha+" m².\n"+
+    "Předpokládaný počet osob: "+osoby+(fl.neschopne?" (vč. osob neschopných samostatné evakuace)":"")+".\n"+
+    "Konstrukční systém: "+konstr+".\n"+
+    "Popis: "+popis);
+
+  // 3 Zatřídění / kategorie
+  s.push(H("ZATŘÍDĚNÍ STAVBY Z HLEDISKA POŽÁRNÍ BEZPEČNOSTI","§ 41 odst. 3 písm. b) — vyhl. 460/2021 Sb.") +
+    "Kategorie stavby z hlediska požární bezpečnosti (I / II / III) se stanoví dle\n"+
+    "vyhlášky č. 460/2021 Sb. [veřejné právo] z druhu, výšky, kapacity a podlažnosti.\n"+
+    "Zařazení a odůvodnění kategorie provede zpracovatel.\n"+
+    "Rozhodující tvrzení k uplatnění norem:\n"+
+    R.statements.map(function(x){return "   • "+x;}).join("\n"));
+
+  // 4 PÚ
+  s.push(H("ROZDĚLENÍ STAVBY DO POŽÁRNÍCH ÚSEKŮ","§ 41 odst. "+st.odst+" písm. b)") +
+    (R.present.pu1 ? "Celý objekt tvoří zpravidla jeden požární úsek (OB 1, posoudí zpracovatel).\n"
+                   : "Objekt se člení na požární úseky (PÚ); seznam PÚ a účel místností doplní zpracovatel.\n")+
+    ((fl.garaz||d.druh==="garaz") ? "Garáž tvoří samostatný PÚ dle ČSN 73 0804.\n" : "")+
+    "PÚ se zakreslí v požárních výkresech (výkresová část).");
+
+  // 5 Riziko + SPB
+  if (R.present.riziko) s.push(H("POŽÁRNÍ RIZIKO A STUPEŇ POŽÁRNÍ BEZPEČNOSTI (SPB)","§ 41 odst. "+st.odst+" písm. b)") +
+    (r.flags.redukceVypoctuPv
+      ? "Pro tento druh se p_v stanovuje normově (tabulkově), nikoli plným výpočtem.\n"
+      : "")+
+    (r.flags.ekonRiziko ? "Stanovuje se rovněž ekonomické riziko dle ČSN 73 0804.\n" : "")+
+    calcsFor(["pv","pvVyrobni","pvSklad","pvGaraz","ekonRiziko","spb","mezniRozmery","unikZjednoduseny"]));
+
+  // 6 Odolnost
+  if (R.present.odolnost) s.push(H("POŽÁRNÍ ODOLNOST STAVEBNÍCH KONSTRUKCÍ A POŽÁRNÍCH UZÁVĚRŮ","§ 41 odst. "+st.odst+" písm. c)") +
+    "Požadované požární odolnosti (R/REI/EI/EW, min) a druh částí (DP1/DP2/DP3) dle SPB:\n"+
+    "   "+P+" 73 0810 / "+r.base+", tab. …]. Pro každou konstrukci se uvede POŽADAVEK vs.\n"+
+    "   SKUTEČNOST a závěr vyhovuje/nevyhovuje (vyplní zpracovatel).\n"+
+    calcsFor(["odolnost"]));
+
+  // 7 Hmoty
+  if (R.present.hmoty) s.push(H("STAVEBNÍ HMOTY / TŘÍDA REAKCE NA OHEŇ","§ 41 odst. "+st.odst+" písm. c)") +
+    "Třídy reakce na oheň, šíření plamene, odkapávání v ÚC a zásahových cestách:\n"+
+    "   "+P+" 73 0810, čl. …]. Konkrétní hmoty a třídy doplní zpracovatel.");
+
+  // 8 Únikové cesty
+  if (R.present.uc) s.push(H("ÚNIKOVÉ CESTY A EVAKUACE OSOB"+(fl.zvirata?" / ZVÍŘAT":""),"§ 41 odst. "+st.odst+" písm. d)") +
+    "Druh, počet, kapacita a provedení ÚC / NÚC / CHÚC:\n"+
+    (R.present.chuc||r.flags.chuc ? "   Povinné posouzení chráněné únikové cesty (CHÚC).\n" : "")+
+    (fl.neschopne ? "   POZOR: osoby neschopné samostatné evakuace — zvýšené požadavky.\n" : "")+
+    calcsFor(["unik","unikZjednoduseny","chuc","pocetOsob"]));
+
+  // 9 Odstupy
+  if (R.present.odstup) s.push(H("ODSTUPOVÉ VZDÁLENOSTI A POŽÁRNĚ NEBEZPEČNÝ PROSTOR","§ 41 odst. "+st.odst+" písm. f)") +
+    calcsFor(["odstup"]));
+
+  // 10 Požární voda
+  if (R.present.voda) s.push(H("ZÁSOBOVÁNÍ POŽÁRNÍ VODOU A ODBĚRNÍ MÍSTA","§ 41 odst. "+st.odst+" písm. e)") +
+    "Vnější odběrná místa (hydranty / nádrž) — vzdálenosti, profil, vydatnost:\n"+
+    "   "+P+" 73 0873, tab. …].\n"+
+    "Vnitřní odběrná místa (nástěnné hydranty): "+P+" 73 0873, čl. …].");
+
+  // 11 Zásahové cesty
+  if (R.present.zasah) s.push(H("PŘÍSTUPOVÉ KOMUNIKACE, NÁSTUPNÍ PLOCHY, ZÁSAHOVÉ CESTY","§ 41 odst. "+st.odst+" písm. e)") +
+    "Příjezdové komunikace, nástupní plochy, vnitřní/vnější zásahové cesty:\n"+
+    "   "+P+" "+r.base+", čl. …]. Parametry (šířka, únosnost, podjezdná výška)\n"+
+    "   a nutnost nástupních ploch posoudí zpracovatel dle výšky a charakteru objektu.");
+
+  // 12 PHP
+  if (R.present.php) s.push(H("PŘENOSNÉ HASICÍ PŘÍSTROJE A VĚCNÉ PROSTŘEDKY PO","§ 41 odst. 5 písm. l)") +
+    "Druh, počet a rozmístění PHP — výpočtem nebo normativně:\n"+
+    "   nárok (počet HJ) = "+P+" "+r.base+" / vyhl. 23/2008 Sb., čl. …]; hasicí schopnost "+P+" …, čl. …].");
+
+  // 13 Technická zařízení (Track B / DSP short)
+  if (R.present.tz) s.push(H("TECHNICKÁ A TECHNOLOGICKÁ ZAŘÍZENÍ STAVBY Z HLEDISKA PB","§ 41 odst. 5 písm. j), k)") +
+    "Vytápění, vzduchotechnika, rozvody, prostupy požárně dělicími konstrukcemi (ucpávky),\n"+
+    "elektroinstalace a spalinové cesty z hlediska PO posoudí zpracovatel; normové požadavky\n"+
+    "   "+P+" "+r.base+", čl. …]. Prostupy se utěsní na požární odolnost dělicí konstrukce.");
+
+  // 14 PBZ + vyhrazená PBZ (příloha 7)
+  if (R.present.pbz) {
+    var pbzBlock = H("POŽÁRNĚ BEZPEČNOSTNÍ ZAŘÍZENÍ (PBZ)","§ 41 odst. "+st.odst+" písm. g), h), i) + příloha č. 7") +
+      "Posouzení potřeby PBZ pro tento druh a charakteristiky stavby.\n"+
+      "Pro každé navržené PBZ se popíše činnost za běžného stavu i při požáru a vzájemné vazby.\n";
+    if (R.pbz.length) {
+      pbzBlock += "\nVyhrazená PBZ (povinné náležitosti dle přílohy č. 7 vyhl. 246/2001 Sb.):\n"+
+        R.pbz.map(function(k,i){ return "   "+(i+1)+") "+PBZ7[k]; }).join("\n");
+    } else {
+      pbzBlock += "Konkrétní typy PBZ navrhne zpracovatel; vyhrazená PBZ dle přílohy č. 7 dle potřeby.";
+    }
+    if (fl.soubehpbz) pbzBlock += "\nSOUBĚH ≥2 vyhrazených PBZ → zpracovat požární scénář a koordinaci (§ 41 odst. "+st.odst+" písm. i).";
+    s.push(pbzBlock);
+  }
+
+  // 15 Značení (Track B only)
+  if (R.present.znaceni) s.push(H("BEZPEČNOSTNÍ ZNAČENÍ A TABULKY","§ 41 odst. 5 písm. m)") +
+    "Rozsah a rozmístění bezpečnostního značení (směry úniku, umístění věcných prostředků PO\n"+
+    "a PBZ) dle ČSN EN ISO 7010: posoudí zpracovatel; značení se zaznamená v požárních výkresech.");
+
+  // 16 Zvláštní / odlišný postup
+  if (R.present.zvlast) s.push(H("ZVLÁŠTNÍ POŽADAVKY / ODLIŠNÝ POSTUP","§ 41 odst. 2 písm. b) — speciální část") +
+    "Uplatní se odlišný postup nebo zvláštní požadavky (např. souběh PBZ, hořlavé látky,\n"+
+    "snížení hořlavosti / zvýšení odolnosti). Odůvodnění a opatření navrhne zpracovatel:\n"+
+    "   "+P+" 73 0810, čl. …].");
+
+  // omezení rozsahu (§41 odst.8)
+  if (st.omezeni) s.push("\n* POZNÁMKA K ROZSAHU: U změny stavby může být rozsah PBŘ omezen na rozsah\n"+
+    "  prováděné změny dle § 41 odst. 8 (skupina I/II dle ČSN 73 0834); musí však zůstat\n"+
+    "  dostatečným podkladem pro posouzení požární bezpečnosti.");
+
+  // Závěr
+  n++;
+  s.push("\n"+n+". ZÁVĚR\n"+
+    "Po doplnění normových hodnot z platných ČSN a posouzení jednotlivých kapitol posuzovaná\n"+
+    "stavba "+DRUHY[d.druh]+" vyhovuje / nevyhovuje (vyhodnotí zpracovatel) požadavkům požární\n"+
+    "bezpečnosti staveb. Konečné posouzení, doplnění normových hodnot, požární výkresy a\n"+
+    "autorizaci (razítko) provede oprávněná osoba v oboru požární bezpečnost staveb.");
+
+  return s.join("\n");
+}
+
+/* ---------------------------------------------------------------------------
+   VÝKRESOVÁ ČÁST — checklist (§41 odst.6; odst.7 extends for Track B).
+   --------------------------------------------------------------------------- */
+function vykresy(R) {
+  var base = [
+    "grafické označení požárních úseků a SPB",
+    "požární odolnost stavebních konstrukcí",
+    "směr úniku, východy a počet osob",
+    "prostory s EPS / SHZ / ZOKT (jsou-li navrženy)",
+    "odběrní místa požární vody",
+    "požárně nebezpečný prostor, přístupové komunikace, nástupní plochy, zásahové cesty"
+  ];
+  var bExtra = [
+    "hlavní vypínač el. energie, Central STOP / Total STOP",
+    "počet osob na únikových cestách",
+    "umístění PBZ a věcných prostředků PO"
+  ];
+  var list = base.concat(R.st.track==="B" ? bExtra : []);
+  return "\nVÝKRESOVÁ ČÁST — seznam požadovaných výkresů  [§ 41 odst. "+(R.st.track==="B"?"6 a 7":"6")+"]\n"+
+    "(výkresy negeneruje nástroj; zpracuje zpracovatel)\n"+
+    list.map(function(x){return "   ☐ "+x;}).join("\n");
+}
+
+/* ---------------------------------------------------------------------------
+   ASSEMBLY
+   --------------------------------------------------------------------------- */
+function generateDraft(d) {
+  var R = resolve(d);
+  var nazev = val(d.nazev,"[NÁZEV STAVBY]");
+  var datum = new Date().toISOString().slice(0,10);
+  var parts = ["textová","výkresová"];
+  if (R.calcs.length) parts.push("výpočtová");
+  if (R.flags.odlisny) parts.push("speciální");
+
+  var head =
+"TECHNICKÁ ZPRÁVA POŽÁRNĚ BEZPEČNOSTNÍHO ŘEŠENÍ\n"+
+"(KONCEPT / OSNOVA k doplnění a autorizaci"+(R.st.dLabel!=="—"?" — část "+R.st.dLabel+" dle vyhl. 131/2024 Sb.":"")+")\n"+
+"════════════════════════════════════════════════════════════════════\n\n"+
+"Stavba: "+nazev+"\n"+
+"Druh stavby: "+DRUHY[d.druh]+"\n"+
+"Požárně-technické zařazení: "+R.r.obFrame+"\n"+
+"Stupeň dokumentace: "+STUPNE[d.stupen]+"   |   část PD: "+R.st.dLabel+"\n"+
+"Režim § 41: odst. "+R.st.odst+" ("+(R.st.track==="A"?"Track A — návrh":"Track B — popis a zhodnocení")+")\n"+
+"Části PBŘ (§ 41 odst. 1–2): "+parts.join(", ")+"\n"+
+"Datum zpracování konceptu: "+datum+"\n\n"+
+(R.st.statutory ? "" :
+"POZNÁMKA: V tomto stupni ("+STUPNE[d.stupen]+") není PBŘ zpravidla zákonným požadavkem;\n"+
+"níže je pouze orientační koncept (odstupy, přístup HZS, hrubé členění na PÚ).\n\n")+
+"UPOZORNĚNÍ (HITL): Tento dokument je strojově generovaná OSNOVA a veřejnoprávní rámec.\n"+
+"Z druhu, charakteristik a stupně dokumentace vybral, které normy a kapitoly se uplatní\n"+
+"(citace ČSN pouze číslem). NEOBSAHUJE a nereprodukuje text ani hodnoty technických norem\n"+
+"(ČSN). Veškeré normové hodnoty jsou ponechány jako placeholdery [DOPLŇ DLE ČSN …] a doplní\n"+
+"je autorizovaná osoba z vlastního přístupu k ČSN. NENÍ projektovou dokumentací; vyžaduje\n"+
+"posouzení, doplnění, požární výkresy a autorizaci (razítko) oprávněnou osobou.\n\n"+
+"── VÝBĚR UPLATNITELNÝCH NOREM (rozhodnuto z druhu stavby) ──────────\n"+
+"Báze: "+R.r.base+".  Uplatní se zejména: "+R.norms.join(", ")+".\n"+
+"════════════════════════════════════════════════════════════════════\n";
+
+  return head + buildSections(d, R) + "\n\n" + vykresy(R) +
+"\n\n════════════════════════════════════════════════════════════════════\n"+
+"Zpracoval (osnova/koncept): nástroj PBŘ generátor — k posouzení, doplnění a autorizaci\n"+
+"oprávněnou osobou v oboru požární bezpečnost staveb.\n";
+}
+
+/* ---------------------------------------------------------------------------
+   UI wiring
+   --------------------------------------------------------------------------- */
+var out=document.getElementById("out"), copyBtn=document.getElementById("copy"),
+    dlBtn=document.getElementById("dl"), applic=document.getElementById("applic"),
+    druhSel=document.getElementById("druh"), stupenSel=document.getElementById("stupen");
+var current="";
+
+function collect(){
+  var fd=new FormData(document.getElementById("f")), data={};
+  fd.forEach(function(v,k){ data[k]=v; });
+  document.querySelectorAll(".cf").forEach(function(cb){ data[cb.name]=cb.checked; });
+  return data;
+}
+function renderApplic(){
+  var R=resolve(collect());
+  applic.classList.remove("hidden");
+  var sekce=Object.keys(R.present).filter(function(k){return R.present[k];}).length;
+  applic.innerHTML=
+    "<div class='font-semibold mb-1'>Co se uplatní (rozhodnuto nástrojem):</div>"+
+    "<div><span class='font-medium'>Zařazení:</span> "+R.r.obFrame+"</div>"+
+    "<div class='mt-1'><span class='font-medium'>Báze:</span> "+R.r.base+
+      " &nbsp;|&nbsp; <span class='font-medium'>Režim:</span> § 41 odst. "+R.st.odst+" (Track "+R.st.track+")"+
+      " &nbsp;|&nbsp; <span class='font-medium'>část PD:</span> "+R.st.dLabel+"</div>"+
+    "<div class='mt-1'><span class='font-medium'>Normy:</span> "+R.norms.join(", ")+"</div>"+
+    "<div class='mt-1'><span class='font-medium'>Skelety výpočtů:</span> "+(R.calcs.length?R.calcs.join(", "):"—")+"</div>"+
+    "<div class='mt-1'><span class='font-medium'>Vyhrazená PBZ (příl. 7):</span> "+(R.pbz.length?R.pbz.join(", "):"—")+"</div>"+
+    "<div class='mt-1 text-amber-800'>Kapitol: "+sekce+(R.st.statutory?"":" · v tomto stupni PBŘ není zákonný požadavek")+"</div>";
+}
+document.getElementById("f").addEventListener("change", renderApplic);
+renderApplic();
+
+document.getElementById("f").addEventListener("submit", function(e){
+  e.preventDefault();
+  current=generateDraft(collect());
+  out.textContent=current;
+  copyBtn.disabled=false; dlBtn.disabled=false;
+});
+copyBtn.addEventListener("click", function(){
+  navigator.clipboard.writeText(current);
+  copyBtn.textContent="Zkopírováno";
+  setTimeout(function(){copyBtn.textContent="Kopírovat";},1500);
+});
+dlBtn.addEventListener("click", function(){
+  var safe=current.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" '+
+    'xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">'+
+    '<style>body{font-family:"Times New Roman",serif;font-size:11pt;white-space:pre-wrap}</style>'+
+    '</head><body><pre>'+safe+'</pre></body></html>';
+  var blob=new Blob(["﻿"+html],{type:"application/msword"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="PBR-koncept.doc";
+  a.click();
+});
+</script>
+</body>
+</html>
