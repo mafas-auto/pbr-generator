@@ -30,3 +30,39 @@ paths = [
   '''\.(test|spec|e2e)\.(js|ts|tsx|py)$''',
   '''(^|/)__fixtures__/''',
 ]
+
+# Confirmed false positives from the 2026-08-10 full-history sweep. Matched on the
+# LINE, not on the path, so a genuine key in the same file is still caught.
+[[allowlists]]
+description = "FastAPI app constructor - the boilerplate template line, seen in 5 repos"
+regexTarget = "line"
+regexes = [
+  '''docs_url\s*=\s*None if IS_PRODUCTION''',
+  '''title\s*=\s*"PROJECT_NAME API"''',
+  '''redoc_url\s*=\s*None''',
+]
+
+[[allowlists]]
+description = "Client-side storage keys - a constant named *_KEY holding a bucket name"
+regexTarget = "line"
+regexes = [
+  '''(?i)localStorage\.(get|set|remove)Item''',
+  '''(?i)const\s+\w*_KEY\s*=\s*["'][a-z0-9]+(-[a-z0-9]+)+["']\s*;''',
+]
+
+[[allowlists]]
+description = "Public keys are publishable by definition"
+regexTarget = "line"
+regexes = [
+  '''(?i)#?\s*public key:''',
+  '''\bage1[0-9a-z]{20,}''',
+  '''\bssh-(ed25519|rsa|ecdsa)\s+AAAA''',
+]
+
+[[allowlists]]
+description = "Figma and design-tool identifiers - addresses, not credentials"
+regexTarget = "line"
+regexes = [
+  '''(?i)\b(file|plan|node|team)Key\b''',
+  '''(?i)figma\.com/(file|design|board)/''',
+]
