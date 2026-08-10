@@ -1,0 +1,32 @@
+# Allowlist for shapes that are documentation, fixtures or placeholders.
+# Every entry here was a confirmed false positive in the 2026-08-10 sweep.
+# Add narrowly. A broad allowlist is how a real leak gets missed.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Placeholder and example values"
+regexTarget = "match"
+regexes = [
+  '''(?i)(your|example|placeholder|changeme|dummy|redacted|paste[- ]?\w*[- ]?here|<[^>]+>)''',
+  '''(?i)\b(fake|sample|test)[-_]?(key|token|secret|password)\b''',
+]
+
+[[allowlists]]
+description = "Example env files and generated lockfiles"
+paths = [
+  '''\.env\.example$''',
+  '''env\.example$''',
+  '''env\.production\.example$''',
+  '''(^|/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|poetry\.lock)$''',
+  '''(^|/)node_modules/''',
+]
+
+[[allowlists]]
+description = "Test fixtures - deliberately secret-shaped strings"
+paths = [
+  '''(^|/)tests?/''',
+  '''\.(test|spec|e2e)\.(js|ts|tsx|py)$''',
+  '''(^|/)__fixtures__/''',
+]
