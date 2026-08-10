@@ -5,6 +5,25 @@
 [extend]
 useDefault = true
 
+# --- Custom rules -----------------------------------------------------------
+# Added 2026-08-10: the default ruleset walked straight past a live Google app
+# password in SP-InvoiceApp's committed compose file. Both rules require a
+# keyword next to the value, so prose cannot trip them.
+
+[[rules]]
+id = "google-app-password"
+description = "Google app password (16 letters, usually shown as 4x4 groups)"
+regex = '''(?i)\b(?:gmail|google|smtp|mail)[_.\- ]?(?:app[_.\- ]?)?pass(?:word|wd)?\b["'`]?\s*[:=]\s*["'`]?([a-z]{4}[ \-]?[a-z]{4}[ \-]?[a-z]{4}[ \-]?[a-z]{4})\b'''
+secretGroup = 1
+keywords = ["password", "passwd", "apppassword", "app_password"]
+
+[[rules]]
+id = "mail-credential-assignment"
+description = "Mail account password assigned in config - GMAIL_/SMTP_/MAIL_ prefix"
+regex = '''(?i)\b(?:gmail|smtp|mail|imap|sendgrid)_(?:app_)?(?:pass|password|pwd|secret)\b\s*[:=]\s*["'`]?([^\s"'`#]{8,})'''
+secretGroup = 1
+keywords = ["gmail_", "smtp_", "mail_pass", "imap_", "sendgrid_"]
+
 [[allowlists]]
 description = "Placeholder and example values"
 regexTarget = "match"
