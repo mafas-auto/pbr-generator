@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pbr",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "D:\\LAB\\prototyp", "-l", "5057"],
+      "port": 5057
+    }
+  ]
+}
