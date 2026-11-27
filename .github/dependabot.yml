@@ -1,0 +1,25 @@
+# Dependency updates: patch and minor grouped into one weekly PR per ecosystem, major stays a separate PR.
+# Own repos merge the grouped PR automatically after green checks (vault: Automatizace/uklid-zavislosti/FLOW.md);
+# a repo without CI checks is never merged. Standard: boilerplate README, section Dependencies.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories:
+      - "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      patch-minor:
+        update-types: [minor, patch]
+  - package-ecosystem: docker
+    directories:
+      - "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      patch-minor:
+        update-types: [minor, patch]
